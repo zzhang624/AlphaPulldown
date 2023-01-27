@@ -50,7 +50,7 @@ conda create -n AlphaPulldown -c omnia -c bioconda -c conda-forge python==3.7 op
 **Secondly**, activate the AlphaPulldown environment and install AlphaPulldown
 ```bash
 source activate AlphaPulldown
-pip install alphapulldown
+pip install alphapulldown==0.22.3
 pip install -q "jax[cuda]>=0.3.8,<0.3.10" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 
