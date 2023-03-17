@@ -67,6 +67,9 @@ flags.DEFINE_integer(
 flags.DEFINE_string(
     "new_uniclust_dir", None, "directory where new version of uniclust is stored"
 )
+flags.DEFINE_string(
+    "extra_msa_db_path",None,"path to extra msa db"
+)
 flags.DEFINE_bool("use_mmseqs2",False,"Use mmseqs2 remotely or not. Default is False")
 
 FLAGS = flags.FLAGS
@@ -85,8 +88,12 @@ def create_global_arguments(flags_dict):
     global pdb70_database_path
     global use_small_bfd
     global uniref30_database_path
+    global extra_msa_db_path
 
     # Path to the Uniref30 database for use by HHblits.
+    if FLAGS.extra_msa_db_path is not None:
+        extra_msa_db_path = os.path.abspath(FLAGS.extra_msa_db_path)
+
     if FLAGS.uniref30_database_path is None:
         uniref30_database_path = os.path.join(
             FLAGS.data_dir, "uniref30", "UniRef30_2021_03"
@@ -171,6 +178,7 @@ def create_pipeline():
         mgnify_database_path=mgnify_database_path,
         bfd_database_path=bfd_database_path,
         uniref30_database_path=uniref30_database_path,
+        extra_msa_db_path=extra_msa_db_path,
         small_bfd_database_path=small_bfd_database_path,
         use_small_bfd=use_small_bfd,
         use_precomputed_msas=FLAGS.use_precomputed_msas,

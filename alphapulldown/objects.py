@@ -19,6 +19,10 @@ from pathlib import Path as plPath
 from alphafold.data.tools import hhsearch
 from colabfold.batch import get_queries,unserialize_msa,get_msa_and_templates,msa_to_str,build_monomer_feature,parse_fasta
 
+logger = logging.getLogger(__name__)
+FORMAT = "[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
+logging.basicConfig(format=FORMAT)
+
 @contextlib.contextmanager
 def temp_fasta_file(sequence_str):
     """function that create temp file"""
@@ -85,6 +89,7 @@ class MonomericObject:
                     use_precomuted_msa,
                 )
         else:
+            logger.info(f"using precomputed msa for uniprot msas")
             result = pipeline.run_msa_tool(
                 uniprot_msa_runner,
                 input_fasta_path,
@@ -92,8 +97,16 @@ class MonomericObject:
                 "sto",
                 use_precomuted_msa,
             )
-        msa = parsers.parse_stockholm(result["sto"])
+        result['a3m'] = parsers.convert_stockholm_to_a3m(result['sto'])
+        msa = parsers.parse_a3m(result["a3m"])
         msa = msa.truncate(max_seqs=50000)
+        print(f"objects.py line 103 msa.description is {msa.descriptions[1]}")
+        import re
+        _OX_PATTEN = re.compile(r"OX=(?P<TaxID>[0-9]{1,20}\b)")
+        matches = re.search(_OX_PATTEN,msa.descriptions[1])
+        if matches:
+            species_id = matches.group("TaxID")
+            print(f"objects.py line 108 matched and species id is {species_id}")
         all_seq_features = pipeline.make_msa_features([msa])
         valid_feats = msa_pairing.MSA_FEATURES + (
             "msa_species_identifiers",
@@ -109,6 +122,7 @@ class MonomericObject:
     ):
         """a method that make msa and template features"""
         if not use_precomputed_msa:
+            print("objects.py line 119 actually not use precomputed msa")
             if not save_msa:
                 """this means no msa files are going to be saved"""
                 logging.info("You have chosen not to save msa output files")
@@ -140,8 +154,8 @@ class MonomericObject:
             """This means precomputed msa files are available"""
             msa_output_dir = os.path.join(output_dir, self.description)
             plPath(msa_output_dir).mkdir(parents=True, exist_ok=True)
-            logging.info(
-                "use precomputed msa. Searching for msa files in :{}".format(
+            print(
+                "objects.py line 150 use precomputed msa. Searching for msa files in :{}".format(
                     msa_output_dir
                 )
             )
