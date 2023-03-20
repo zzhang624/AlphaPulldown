@@ -72,7 +72,7 @@ class MonomericObject:
         msa_runner,
         save_msa,
         output_dir=None,
-        use_precomuted_msa=False):
+        use_precomuted_msa=False,file_name=''):
         if not use_precomuted_msa:
             if not save_msa:
                 with tempfile.TemporaryDirectory() as tempdir:
@@ -80,7 +80,7 @@ class MonomericObject:
                     result = pipeline.run_msa_tool(
                         msa_runner,
                         input_fasta_path,
-                        f"{tempdir}/uniprot.sto",
+                        f"{tempdir}/{file_name}.sto",
                         "sto",
                         use_precomuted_msa,
                     )
@@ -91,7 +91,7 @@ class MonomericObject:
                 result = pipeline.run_msa_tool(
                     msa_runner,
                     input_fasta_path,
-                    f"{output_dir}/uniprot.sto",
+                    f"{output_dir}/{file_name}.sto",
                     "sto",
                     use_precomuted_msa,
                 )
@@ -100,7 +100,7 @@ class MonomericObject:
             result = pipeline.run_msa_tool(
                 msa_runner,
                 input_fasta_path,
-                f"{output_dir}/uniprot.sto",
+                f"{output_dir}/{file_name}.sto",
                 "sto",
                 use_precomuted_msa,
             )
@@ -111,21 +111,19 @@ class MonomericObject:
 
     def all_seq_msa_features(
         self,
-        msa
+        seq_features
     ):
         """Get MSA features for unclustered uniprot, for pairing later on."""
-        
-        all_seq_features = pipeline.make_msa_features([msa])
         valid_feats = msa_pairing.MSA_FEATURES + (
             "msa_species_identifiers",
             "msa_uniprot_accession_identifiers",
         )
         feats = {
-            f"{k}_all_seq": v for k, v in all_seq_features.items() if k in valid_feats
+            f"{k}_all_seq": v for k, v in seq_features.items() if k in valid_feats
         }
         return feats
     
-    def update_feature_dict(self,fasta_file,save_msa,output_dir=None):
+    def update_feature_dict(self,fasta_file,save_msa,output_dir,use_precomputed_msa):
         """
         This method will read the results from all_seq_msa_features and update 
         the feature_dict accordingly
@@ -136,17 +134,18 @@ class MonomericObject:
             input_fasta_path=fasta_file, msa_output_dir=output_dir
         )
         uniprot_msa = self.get_all_seq_msas(
-            fasta_file, self.uniprot_runner, save_msa
+            fasta_file, self.uniprot_runner, save_msa,output_dir,use_precomputed_msa,file_name="uniprot"
         )
         if self.extra_msa_runner is not None:
             extra_msa = self.get_all_seq_msas(input_fasta_path=fasta_file,
                                                 msa_runner=self.extra_msa_runner,
-                                                save_msa=save_msa,
+                                                save_msa=save_msa,output_dir=output_dir,
+                                                use_precomputed_msa=use_precomputed_msa,file_name="extra_msa"
                                                 )
-            concatenated_msa = self.concatenate_msa()
+            concatenated_msa_features = pipeline.make_msa_features((uniprot_msa,extra_msa))
         else:
-            concatenated_msa = uniprot_msa
-        pairing_results = self.all_seq_msa_features(concatenated_msa)
+            concatenated_msa_features = pipeline.make_msa_features((uniprot_msa))
+        pairing_results = self.all_seq_msa_features(concatenated_msa_features)
         self.feature_dict.update(pairing_results)
 
     def make_features(
@@ -159,7 +158,10 @@ class MonomericObject:
                 """this means no msa files are going to be saved"""
                 logging.info("You have chosen not to save msa output files")
                 sequence_str = f">{self.description}\n{self.sequence}"
-                self.update_feature_dict(sequence_str,save_msa,output_dir)
+                with temp_fasta_file(
+                    sequence_str
+                ) as fasta_file, tempfile.TemporaryDirectory() as tmpdirname:
+                    self.update_feature_dict(fasta_file,save_msa,tmpdirname,use_precomputed_msa)
 
             else:
                 """this means no precomputed msa available and will save output msa files"""
@@ -168,11 +170,7 @@ class MonomericObject:
                 logging.info("will save msa files in :{}".format(msa_output_dir))
                 plPath(msa_output_dir).mkdir(parents=True, exist_ok=True)
                 with temp_fasta_file(sequence_str) as fasta_file:
-                    self.feature_dict = pipeline.process(fasta_file, msa_output_dir)
-                    pairing_results = self.all_seq_msa_features(
-                        fasta_file, self._uniprot_runner, save_msa, msa_output_dir
-                    )
-                    self.feature_dict.update(pairing_results)
+                    self.update_feature_dict(fasta_file,save_msa,msa_output_dir,use_precomputed_msa)
         else:
             """This means precomputed msa files are available"""
             msa_output_dir = os.path.join(output_dir, self.description)
@@ -184,15 +182,7 @@ class MonomericObject:
             )
             sequence_str = f">{self.description}\n{self.sequence}"
             with temp_fasta_file(sequence_str) as fasta_file:
-                self.feature_dict = pipeline.process(fasta_file, msa_output_dir)
-                pairing_results = self.all_seq_msa_features(
-                    fasta_file,
-                    self._uniprot_runner,
-                    save_msa,
-                    msa_output_dir,
-                    use_precomuted_msa=True,
-                )
-                self.feature_dict.update(pairing_results)
+                self.update_feature_dict(fasta_file,save_msa,msa_output_dir,use_precomputed_msa)
 
     def mk_template(self,a3m_lines,pdb70_database_path,template_mmcif_dir,query_sequence,max_template_date, obsolete_pdbs_path=None):
         """
