@@ -27,14 +27,14 @@ import alphafold
 from pathlib import Path
 from colabfold.utils import DEFAULT_API_SERVER
 
-class TestCreateObjects(unittest.TestCase):
+class TestParser(unittest.TestCase):
     def setUp(self) -> None:
         self.jackhmmer_binary_path = shutil.which("jackhmmer")
         self.hmmsearch_binary_path = shutil.which("hmmsearch")
         self.hhblits_binary_path = shutil.which("hhblits")
         self.kalign_binary_path = shutil.which("kalign")
         self.hmmbuild_binary_path = shutil.which("hmmbuild")
-        self.fasta_paths = "./example_data/test_input.fasta"
+        self.fasta_paths = "./example_data/P03452.fasta"
         self.monomer_object_dir = "./example_data/"
         self.output_dir = "./example_data/"
         self.data_dir = "/scratch/AlphaFold_DBs/2.3.0/"
@@ -72,6 +72,7 @@ class TestCreateObjects(unittest.TestCase):
 
         self.extra_msa_db_path = "./example_data/extra_msa_db_cleaned.fasta"
 
+        return super().setUp()
     
     def test_1_initialise_MonomericObject(self):
         """Test initialise a monomeric object"""
@@ -92,8 +93,7 @@ class TestCreateObjects(unittest.TestCase):
         uniref30_database_path=self.uniref30_database_path,
         small_bfd_database_path=self.small_bfd_database_path,
         use_small_bfd=False,
-        extra_msa_db_path=self.extra_msa_db_path,
-        use_precomputed_msas=False,
+        use_precomputed_msas=True,
         template_searcher=hmmsearch.Hmmsearch(
             binary_path=self.hmmsearch_binary_path,
             hmmbuild_binary_path=self.hmmbuild_binary_path,
@@ -109,22 +109,21 @@ class TestCreateObjects(unittest.TestCase):
         ),)
         return monomer_data_pipeline
     
-    def test_3_run_alignments(self):
-        monomer_obj = self.test_1_initialise_MonomericObject()
-        monomer_pipeline = self.test_2_initialise_datapipeline()
-        monomer_obj.make_features(monomer_pipeline,self.output_dir
-                                  ,use_precomputed_msa=False,save_msa=False)
-        
     def test_3_add_more_seqdb(self):
         """Test add extra sequence db """
         monomer_obj = self.test_1_initialise_MonomericObject()
         monomer_pipeline = self.test_2_initialise_datapipeline()
         uniprot_database_path = os.path.join(self.data_dir, "uniprot/uniprot.fasta")
         uniprot_runner = create_uniprot_runner(self.jackhmmer_binary_path,uniprot_database_path)
+        extra_msa_runner = create_uniprot_runner(self.jackhmmer_binary_path,self.extra_msa_db_path)
         # monomer_pipeline.extra_msa_db_path = self.extra_msa_db_path
         monomer_obj.uniprot_runner=uniprot_runner
+        monomer_obj.extra_msa_runner=extra_msa_runner
+        print("Now will test make features")
         monomer_obj.make_features(monomer_pipeline,self.output_dir
-                                  ,use_precomputed_msa=False,save_msa=False)
+                                  ,use_precomputed_msa=True,save_msa=False)
+        
+        pickle.dump(monomer_obj,open(f"{monomer_obj.description}.pkl","wb"))
 
-if __name__ == "__main__":
+if __name__ =="__main__":
     unittest.main()
