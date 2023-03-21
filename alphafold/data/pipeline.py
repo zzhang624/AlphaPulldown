@@ -122,17 +122,12 @@ class DataPipeline:
                small_bfd_database_path: Optional[str],
                template_searcher: TemplateSearcher,
                template_featurizer: templates.TemplateHitFeaturizer,
-               extra_msa_db_path,
                use_small_bfd: bool,
                mgnify_max_hits: int = 501,
                uniref_max_hits: int = 10000,
                use_precomputed_msas: bool = False):
  
-    self._extra_msa_db_path = extra_msa_db_path
     self._use_small_bfd = use_small_bfd
-    self.jackhmmer_extra_msa_runner = jackhmmer.Jackhmmer(
-        binary_path=jackhmmer_binary_path,
-        database_path=self._extra_msa_db_path)
     self.jackhmmer_uniref90_runner = jackhmmer.Jackhmmer(
         binary_path=jackhmmer_binary_path,
         database_path=uniref90_database_path)
@@ -153,14 +148,6 @@ class DataPipeline:
     self.uniref_max_hits = uniref_max_hits
     self.use_precomputed_msas = use_precomputed_msas
 
-  
-  @property
-  def extra_msa_db_path(self):
-    return self._extra_msa_db_path
-  
-  @extra_msa_db_path.setter
-  def set_extra_msa_path(self,extra_msa_db_path:str):
-    self._extra_msa_db_path = extra_msa_db_path
 
   def process(self, input_fasta_path: str, msa_output_dir: str) -> FeatureDict:
     """Runs alignment tools on the input sequence and creates features."""
@@ -190,16 +177,6 @@ class DataPipeline:
         msa_format='sto',
         use_precomputed_msas=self.use_precomputed_msas,
         max_sto_sequences=self.mgnify_max_hits)
-    extra_msa_out_path = os.path.join(msa_output_dir, 'extra_msa_hits.sto')
-    print(f"pipeline 193 now process extra_msa")
-    extra_msa_result = run_msa_tool(
-      msa_runner=self.jackhmmer_extra_msa_runner,
-        input_fasta_path=input_fasta_path,
-        msa_out_path=extra_msa_out_path,
-        msa_format='sto',
-        use_precomputed_msas=self.use_precomputed_msas,
-        max_sto_sequences=self.uniref_max_hits
-    )
 
     msa_for_templates = jackhmmer_uniref90_result['sto']
     msa_for_templates = parsers.deduplicate_stockholm_msa(msa_for_templates)
@@ -222,7 +199,6 @@ class DataPipeline:
 
     jackhmmer_uniref90_result['a3m'] = parsers.convert_stockholm_to_a3m(jackhmmer_uniref90_result['sto'])
     jackhmmer_mgnify_result['a3m'] = parsers.convert_stockholm_to_a3m(jackhmmer_mgnify_result['sto'])
-    extra_msa_result['a3m'] = parsers.convert_stockholm_to_a3m(extra_msa_result['sto'])
     # uniref90_msa = parsers.parse_stockholm(jackhmmer_uniref90_result['sto'])
     print("pipeline.py Now process jackhmmer_mgnify_result")
     mgnify_msa = parsers.parse_stockholm(jackhmmer_mgnify_result['sto'])
@@ -230,8 +206,6 @@ class DataPipeline:
     print(f"pipeline.py Now process jackhmmer_uniref90_result")
     uniref90_msa = parsers.parse_a3m(jackhmmer_uniref90_result['a3m'])
     # mgnify_msa = parsers.parse_a3m(jackhmmer_mgnify_result['a3m'])
-    print("pipeline.py Now process extra_msa_result")
-    extra_msa = parsers.parse_a3m(extra_msa_result['a3m'])
     pdb_template_hits = self.template_searcher.get_template_hits(
         output_string=pdb_templates_result, input_sequence=input_sequence)
 
@@ -263,12 +237,11 @@ class DataPipeline:
         description=input_description,
         num_res=num_res)
 
-    msa_features = make_msa_features((uniref90_msa, bfd_msa, mgnify_msa,extra_msa))
+    msa_features = make_msa_features((uniref90_msa, bfd_msa, mgnify_msa))
 
     logging.info('Uniref90 MSA size: %d sequences.', len(uniref90_msa))
     logging.info('BFD MSA size: %d sequences.', len(bfd_msa))
     logging.info('MGnify MSA size: %d sequences.', len(mgnify_msa))
-    logging.info(f'Extra msa size: {len(extra_msa)}')
     logging.info('Final (deduplicated) MSA size: %d sequences.',
                  msa_features['num_alignments'][0])
     logging.info('Total number of templates (NB: this can include bad '
