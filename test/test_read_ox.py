@@ -6,7 +6,7 @@ import unittest
 import os
 import pickle
 import sys
-from alphapulldown.objects import MonomericObject
+from alphapulldown.objects import MonomericObject,MultimericObject
 import importlib
 from absl import app
 from absl import flags
@@ -115,15 +115,22 @@ class TestParser(unittest.TestCase):
         monomer_pipeline = self.test_2_initialise_datapipeline()
         uniprot_database_path = os.path.join(self.data_dir, "uniprot/uniprot.fasta")
         uniprot_runner = create_uniprot_runner(self.jackhmmer_binary_path,uniprot_database_path)
-        extra_msa_runner = create_uniprot_runner(self.jackhmmer_binary_path,self.extra_msa_db_path)
+        # extra_msa_runner = create_uniprot_runner(self.jackhmmer_binary_path,self.extra_msa_db_path)
         # monomer_pipeline.extra_msa_db_path = self.extra_msa_db_path
         monomer_obj.uniprot_runner=uniprot_runner
-        monomer_obj.extra_msa_runner=extra_msa_runner
+        # monomer_obj.extra_msa_runner=extra_msa_runner
         print("Now will test make features")
         monomer_obj.make_features(monomer_pipeline,self.output_dir
                                   ,use_precomputed_msa=True,save_msa=False)
         
         pickle.dump(monomer_obj,open(f"{monomer_obj.description}.pkl","wb"))
+    
+    def test_4_make_multimericobject(self):
+        """Test if multimericobject can be successfully created using OX codes for pairing"""
+        monomer_obj = pickle.load(open("P03452.pkl",'rb'))
+        multimer_obj = MultimericObject(interactors=[monomer_obj,monomer_obj],pair_msa=True)
+        pickle.dump(multimer_obj,open(f"{multimer_obj.description}.pkl","wb"))
+               
 
 if __name__ =="__main__":
     unittest.main()
