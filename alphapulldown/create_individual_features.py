@@ -178,7 +178,6 @@ def create_pipeline():
         mgnify_database_path=mgnify_database_path,
         bfd_database_path=bfd_database_path,
         uniref30_database_path=uniref30_database_path,
-        extra_msa_db_path=extra_msa_db_path,
         small_bfd_database_path=small_bfd_database_path,
         use_small_bfd=use_small_bfd,
         use_precomputed_msas=FLAGS.use_precomputed_msas,
