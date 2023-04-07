@@ -46,7 +46,8 @@ _UNIPROT_PATTERN = re.compile(
     """,
     re.VERBOSE)
 
-_OX_PATTEN = re.compile(r"OX=(?P<TaxID>[0-9]{1,20}\b)")
+_OX_PATTERN = re.compile(r"OX=(?P<TaxID>[0-9]{1,20}\b)")
+_HOST_OX_PATTEN = re.compile(r"host_OX=(?P<TaxID>[a-zA-Z0-9_]{1,30}\b)")
 @dataclasses.dataclass(frozen=True)
 class Identifiers:
   species_id: str = ''
@@ -68,8 +69,9 @@ def _parse_sequence_identifier(msa_sequence_identifier: str) -> Identifiers:
   """
   # matches = re.search(_UNIPROT_PATTERN, msa_sequence_identifier.strip())
   # print(f"line 70 msa_seq_identifier is : {msa_sequence_identifier}")
-  matches = re.search(_OX_PATTEN, msa_sequence_identifier)
-  if matches:
+  matches = re.search(_OX_PATTERN, msa_sequence_identifier)
+  host_ox_matches = re.search(_HOST_OX_PATTEN, msa_sequence_identifier)
+  if host_ox_matches:
     # return Identifiers(
     #     species_id=matches.group('SpeciesIdentifier'))
     species_id = matches.group("TaxID")
