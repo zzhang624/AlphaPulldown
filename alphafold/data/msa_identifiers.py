@@ -74,10 +74,10 @@ def _parse_sequence_identifier(msa_sequence_identifier: str) -> Identifiers:
   if host_ox_matches:
     # return Identifiers(
     #     species_id=matches.group('SpeciesIdentifier'))
-    species_id = matches.group("TaxID")
+    species_id = host_ox_matches.group("TaxID")
     print(f"line 76 taxid is : {species_id}")
     return Identifiers(
-      matches.group("TaxID")
+      host_ox_matches.group("TaxID")
     )
   # else:
     # print("msa_identifiers.py line 81 pattern is not matched")
