@@ -8,9 +8,10 @@ matplotlib.use("agg")
 import matplotlib.pyplot as plt
 import pickle as pkl
 import gzip
+import numpy as np
 
 
-def plot_pae(seqs: list, order, feature_dir, job_name):
+def plot_pae(seqs: list, order, feature_dir, job_name, residue_index):
     """
     a function to plot pae after all predictions are finished
 
@@ -19,6 +20,7 @@ def plot_pae(seqs: list, order, feature_dir, job_name):
     order: ranking-debug.json 'order' value
     feature_dir: directory where the feature pickles are stored
     job_name: name of the job e.g. protein_A_and_protein_B
+    residue_index: residue_index from the corresponding MultimericObject feature_dict
     """
     matplotlib.use("agg")
     outs = dict()
@@ -37,9 +39,11 @@ def plot_pae(seqs: list, order, feature_dir, job_name):
     for i, t in enumerate(xticks):
         xticks_labels.append(str(i + 1))
 
+    cum_lengths = np.cumsum([len(s) for s in seqs])
     yticks_labels = []
-    for s in seqs:
-        yticks_labels.append(str(len(s)))
+    for s in cum_lengths:
+        curr_residue_index = residue_index[s-1] + 1
+        yticks_labels.append(str(curr_residue_index))
 
     # plt.figure(figsize=(3,18))
     for i in range(len(order)):

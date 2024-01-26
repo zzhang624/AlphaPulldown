@@ -283,7 +283,8 @@ def create_and_save_pae_plots(multimer_object, output_dir):
     else:
         order = json.load(open(ranking_path, "r"))["order"]
         plot_pae(
-            multimer_object.input_seqs, order, output_dir, multimer_object.description
+            multimer_object.input_seqs, order, output_dir, 
+            multimer_object.description, multimer_object.feature_dict['residue_index']
         )
 
 def post_prediction_process(output_path,zip_pickles = False,remove_pickles = False):
