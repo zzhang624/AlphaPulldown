@@ -56,6 +56,17 @@ class TestPredictStructure(absltest.TestCase):
     def test_true_multimer(self):
         self._sbatch_command(6)
 
+    def test_true_multimer_fast_mode(self):
+        self._sbatch_command(7)
+
+    def test_padding(self):
+        self._sbatch_command(8)
+
+    def test_padding2(self):
+        self._sbatch_command(9)
+
+    def test_no_pair_msa(self):
+        self._sbatch_command(10)
 
 if __name__ == '__main__':
     absltest.main()

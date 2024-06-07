@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=test_predict_structure
-#SBATCH --time=01:00:00
+#SBATCH --time=10:00:00
 #SBATCH --qos=normal
 #SBATCH -p gpu-el8
 #SBATCH -C gaming

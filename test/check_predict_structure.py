@@ -21,7 +21,7 @@ from absl.testing import parameterized
 import pytest
 from alphapulldown.folding_backend.alphafold_backend import ModelsToRelax
 
-FAST=True
+FAST=False
 if FAST:
     from alphafold.model import config
     config.CONFIG_MULTIMER.model.embeddings_and_evoformer.evoformer_num_block = 1
@@ -122,6 +122,7 @@ class TestScript(_TestBase):
             f"--data_dir={self.data_dir}",
             f"--oligomer_state_file={self.oligomer_state_file}",
             f"--monomer_objects_dir={self.monomer_objects_dir}",
+            "--msa_depth=1",
             "--job_index=1"
         ]
         result = subprocess.run(self.args, capture_output=True, text=True)
@@ -194,11 +195,11 @@ class TestScript(_TestBase):
             sys.executable,
             self.script_path,
             "--mode=custom",
-            "--num_cycle=48",
+            "--num_cycle=40",
             "--num_predictions_per_model=5",
             "--multimeric_template=True",
             "--model_names=model_2_multimer_v3",
-            "--msa_depth=30",
+            "--msa_depth=1",
             f"--output_path={self.output_dir}",
             f"--data_dir={self.data_dir}",
             f"--protein_lists={self.test_data_dir}/true_multimer/custom.txt",
