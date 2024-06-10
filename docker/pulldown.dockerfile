@@ -71,7 +71,7 @@ RUN wget -q -P /app/alphafold/alphafold/common/ \
 RUN pip3 install --upgrade pip --no-cache-dir \
     && pip3 install --upgrade --no-cache-dir \
       -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple \
-      git+https://github.com/KosinskiLab/AlphaPulldown.git@main \
+      alphapulldown==2.0.0b2 \
       pytest \
       jax==0.4.23 \
       jaxlib==0.4.23+cuda11.cudnn86 \
