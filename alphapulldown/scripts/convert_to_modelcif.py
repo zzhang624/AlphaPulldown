@@ -179,41 +179,46 @@ class _Biopython2ModelCIF(modelcif.model.AbInitioModel):
         lpae = []
         # aa_only=False includes non-canonical amino acids but seems to skip
         # non-peptide-linking residues like ions
-        polypeptides = PPBuilder().build_peptides(self.structure, aa_only=False)
-        for chn_i in polypeptides:
-            for res_i in chn_i:
-                # local pLDDT
-                # Assertion assumes that pLDDT values are also stored in the
-                # B-factor column.
-                assert (
-                    round(scores_json["plddt"][i], 2)
-                    == next(res_i.get_atoms()).bfactor
-                )
-                self.qa_metrics.append(
-                    _LocalPLDDT(
-                        self.asym[res_i.parent.id].residue(res_i.id[1]),
-                        round(scores_json["plddt"][i], 2),
+        # polypeptides = PPBuilder().build_peptides(self.structure, aa_only=False)
+        # Skips resdiues if C-N distance is > 1.8 A, use self.structure instead
+        # https://github.com/biopython/biopython/issues/4746
+        # TODO: Fix this after switching to AlphaFold3!
+        for model in self.structure:
+            for chn_i in model:
+                for res_i in chn_i:
+                    # local pLDDT
+                    # Assertion assumes that pLDDT values are also stored in the
+                    # B-factor column.
+                    assert (
+                        round(scores_json["plddt"][i], 2)
+                        == next(res_i.get_atoms()).bfactor
                     )
-                )
-
-                # pairwise alignment error
-                j = 0
-                # We do a 2nd iteration over the structure instead of doing
-                # index magic because it keeps the code cleaner and should not
-                # be noticeably slower than iterating the array directly.
-                # Majority of time goes into writing files, anyway.
-                for chn_j in polypeptides:
-                    for res_j in chn_j:
-                        lpae.append(
-                            _LocalPairwisePAE(
-                                self.asym[res_i.parent.id].residue(res_i.id[1]),
-                                self.asym[res_j.parent.id].residue(res_j.id[1]),
-                                scores_json["pae"][i][j],
-                            )
+                    self.qa_metrics.append(
+                        _LocalPLDDT(
+                            self.asym[res_i.parent.id].residue(res_i.id[1]),
+                            round(scores_json["plddt"][i], 2),
                         )
-                        j += 1
+                    )
 
-                i += 1
+                    # pairwise alignment error
+                    j = 0
+                    # We do a 2nd iteration over the structure instead of doing
+                    # index magic because it keeps the code cleaner and should not
+                    # be noticeably slower than iterating the array directly.
+                    # Majority of time goes into writing files, anyway.
+                    for model in self.structure:
+                        for chn_j in model:
+                            for res_j in chn_j:
+                                lpae.append(
+                                    _LocalPairwisePAE(
+                                        self.asym[res_i.parent.id].residue(res_i.id[1]),
+                                        self.asym[res_j.parent.id].residue(res_j.id[1]),
+                                        scores_json["pae"][i][j],
+                                    )
+                                )
+                                j += 1
+
+                    i += 1
         self.qa_metrics.extend(lpae)
 
         # outsource PAE to associated file
@@ -1383,32 +1388,32 @@ def main(argv):
         not_selected = d['not_selected']
         model_dir = d['path']
         add_assoc_files = {}
-        try:
-            if len(not_selected) > 0:
-                # pylint: disable=consider-using-with
-                ns_tmpdir = tempfile.TemporaryDirectory(suffix="_modelcif")
-                for mdl in not_selected:
-                    add_assoc_files.update(
-                        alphapulldown_model_to_modelcif(
-                            complex_name,
-                            mdl,
-                            ns_tmpdir.name,
-                            FLAGS.compress,
-                        )
+        #try:
+        if len(not_selected) > 0:
+            # pylint: disable=consider-using-with
+            ns_tmpdir = tempfile.TemporaryDirectory(suffix="_modelcif")
+            for mdl in not_selected:
+                add_assoc_files.update(
+                    alphapulldown_model_to_modelcif(
+                        complex_name,
+                        mdl,
+                        ns_tmpdir.name,
+                        FLAGS.compress,
                     )
-            for mdl in model_list:
-                alphapulldown_model_to_modelcif(
-                    complex_name,
-                    mdl,
-                    model_dir,
-                    FLAGS.compress,
-                    add_assoc_files,
                 )
-        except Exception as exc:
-            logging.error(
-                f"Error while processing model '{mdl[0]}' of complex "
-                + f"'{complex_name}': {exc}"
+        for mdl in model_list:
+            alphapulldown_model_to_modelcif(
+                complex_name,
+                mdl,
+                model_dir,
+                FLAGS.compress,
+                add_assoc_files,
             )
+        # except Exception as exc:
+        #     logging.error(
+        #         f"Error while processing model '{mdl[0]}' of complex "
+        #         + f"'{complex_name}': {exc}"
+        #     )
 
 
 if __name__ == "__main__":
