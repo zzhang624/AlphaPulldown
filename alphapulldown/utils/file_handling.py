@@ -78,7 +78,7 @@ def parse_csv_file(csv_path, fasta_paths, mmt_dir, cluster=False):
                     "chains": [chain]
                 }
 
-    return list(protein_data.values()), template, chain
+    return list(protein_data.values())
 
 def convert_fasta_description_to_protein_name(line):
     line = line.replace(" ", "_")
